@@ -1,4 +1,4 @@
-# Copyright 2021 Infoblox Inc.
+# Copyright 2025 Infoblox Inc.
 # All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -15,7 +15,7 @@ import json
 import re
 import io
 import gzip
-from os.path import isfile, expanduser
+from os.path import isfile, join, expanduser
 import yaml
 
 import requests
@@ -87,7 +87,7 @@ class InfobloxNetMRI(object):
         Returns:
             None
         """
-        credentials_file = expanduser('~/.netmri.yml')
+        credentials_file = join(expanduser('~'), '.netmri.yml')
         if not isfile(credentials_file):
             return
         with open(credentials_file) as file:
@@ -148,15 +148,17 @@ class InfobloxNetMRI(object):
         if isinstance(extra_headers, dict):
             headers.update(extra_headers)
 
-        res = self.session.request(method, url, headers=headers, data=data,
-                                   stream=True)
+        res = self.session.request(
+            method, url, headers=headers, data=data, stream=True,
+            timeout=(5,10)
+        )
         content_type = res.headers.get('content-type')
 
         if 400 <= res.status_code < 600:
             if 'application/json' in content_type:
                 raise HTTPError(res.json(), response=res)
-
-            raise HTTPError(res.content, response=res)
+            else:
+                raise HTTPError(res.content, response=res)
 
         content = b''
         for chunk in res.iter_content():
